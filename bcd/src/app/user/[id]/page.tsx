@@ -1,51 +1,65 @@
+"use client";
 
-
-
-// src/app/user/[id]/page.tsx
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from 'next/link';
 
-export default async function UserPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
-}) {
-  const { id } = await params;
+export default function UserPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [userPosts, setUserPosts] = useState<any[]>([]);
 
-  // 임시 데이터 (나중에 DB나 서버에서 가져올 부분)
-  const userPosts = [
-    { postId: '1', title: `${id}님의 첫 번째 기록`, date: '2026.03.30' },
-    { postId: '2', title: 'BCD 프로젝트 개발 일지', date: '2026.03.31' },
-    { postId: '3', title: '도형 ID 시스템 설계기', date: '2026.04.01' },
-  ];
+  useEffect(() => {
+    // 1. 로컬 스토리지에서 모든 글 가져오기
+    const allPosts = JSON.parse(localStorage.getItem("posts") || "[]");
+    
+    // 2. 현재 접속한 블로그 주인(id)의 글만 필터링
+    const filteredPosts = allPosts.filter((post: any) => post.authorId === id);
+    
+    setUserPosts(filteredPosts);
+  }, [id]);
 
   return (
-    
-    
-    
-    
-    
     <div className="p-10 max-w-2xl mx-auto">
       <header className="mb-12">
         <h1 className="text-4xl font-black mb-2">{id}님의 블로그</h1>
-        <p className="text-gray-500 font-medium">총 {userPosts.length}개의 기록이 있습니다.</p>
+        <p className="text-gray-500 font-medium">
+          총 {userPosts.length}개의 기록이 있습니다.
+        </p>
       </header>
 
       <div className="space-y-6">
-        {userPosts.map((post) => (
-          <Link 
-            key={post.postId} 
-            href={`/user/${id}/post/${post.postId}`}
-            className="block p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group"
-          >
-            <span className="text-xs font-bold text-blue-500 mb-2 block uppercase tracking-tighter">
-              Post #{post.postId}
-            </span>
-            <h2 className="text-xl font-bold group-hover:text-blue-600 transition-colors">
-              {post.title}
-            </h2>
-            <p className="text-gray-400 text-sm mt-3">{post.date}</p>
-          </Link>
-        ))}
+        {userPosts.length > 0 ? (
+          userPosts.map((post) => (
+            <Link 
+              key={post.postId} 
+              href={`/user/${id}/post/${post.postId}`}
+              className="block p-6 bg-white border-2 border-transparent hover:border-black rounded-3xl shadow-sm hover:shadow-xl transition-all group"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-bold mb-2 group-hover:underline">{post.title}</h2>
+                  <p className="text-gray-400 text-sm">{post.date}</p>
+                </div>
+                <span className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-400">아직 작성된 글이 없습니다.</p>
+            <Link href="/write" className="text-blue-500 font-bold mt-2 inline-block hover:underline">
+              첫 글 쓰러 가기
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* 홈으로 돌아가기 버튼 (BCD 피드) */}
+      <div className="mt-12 text-center">
+        <Link href="/" className="text-sm font-bold text-gray-300 hover:text-black transition-all">
+          ← 전체 피드 보기
+        </Link>
       </div>
     </div>
   );

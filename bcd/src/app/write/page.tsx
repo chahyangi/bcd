@@ -1,55 +1,69 @@
-"use client"; // 사용자의 입력을 실시간으로 처리하기 위해 클라이언트 컴포넌트로 선언
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // useEffect 추가
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 
 export default function WritePage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null); // 유저 ID 상태 추가
   const router = useRouter();
 
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+  // 1. 페이지 로드 시 로그인된 유저 정보 가져오기
+  useEffect(() => {
+    const userJson = localStorage.getItem("currentUser");
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      setCurrentUserId(user.id);
+    } else {
+      // 로그인 정보가 없으면 로그인 페이지로 튕겨내기 (선택 사항)
+      alert("로그인이 필요합니다.");
+      router.push("/login");
+    }
+  }, [router]);
 
-  const existingPosts = JSON.parse(localStorage.getItem("posts") || "[]");
-  
-  // 새로운 번호 매기기 (기존 글 개수 + 1)
-  const newPostId = (existingPosts.length + 1).toString();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const newPost = {
-    postId: newPostId, // 이제 1, 2, 3... 처럼 예쁘게 나옵니다.
-    title: title,
-    content: content,
-    authorId: "da-hoon",
-    date: new Date().toLocaleDateString(),
+    if (!currentUserId) {
+      alert("로그인 정보가 없습니다.");
+      return;
+    }
+
+    const existingPosts = JSON.parse(localStorage.getItem("posts") || "[]");
+    const newPostId = (existingPosts.length + 1).toString();
+
+    const newPost = {
+      postId: newPostId,
+      title: title,
+      content: content,
+      authorId: currentUserId, // 2. "da-hoon" 대신 실제 로그인한 유저 ID 저장
+      date: new Date().toLocaleDateString(),
+    };
+
+    const updatedPosts = [newPost, ...existingPosts];
+    localStorage.setItem("posts", JSON.stringify(updatedPosts));
+
+    alert("글이 저장되었습니다!");
+    // 3. 저장 후 자신의 블로그 페이지로 이동
+    router.push(`/user/${currentUserId}`);
   };
-
-  const updatedPosts = [newPost, ...existingPosts];
-  localStorage.setItem("posts", JSON.stringify(updatedPosts));
-
-  alert("글이 저장되었습니다!");
-  router.push("/");
-};
 
   return (
     <div className="max-w-2xl mx-auto p-10">
-    
-      // ... 기존 코드 상단에 추가
-            <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">BCD 블로그 피드</h1>
-            <Link href="/write">
-                <button className="px-6 py-2 bg-black text-white rounded-full font-bold hover:bg-gray-800 transition-all">
-                + 새 글 쓰기
-                </button>
-            </Link>
-            </div>
+      {/* 상단 네비게이션 부분은 Home으로 가는 링크로 수정하는 것이 자연스럽습니다 */}
+      <div className="flex justify-between items-center mb-8">
+        <Link href="/">
+          <h1 className="text-xl font-bold text-gray-400 hover:text-black transition-all">← BCD 피드로</h1>
+        </Link>
+      </div>
+
       <h1 className="text-3xl font-black mb-8 text-gray-900 underline decoration-blue-500 decoration-4 underline-offset-8">
         새 글 작성하기
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 제목 입력 */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">제목</label>
           <input
@@ -62,9 +76,8 @@ const handleSubmit = (e: React.FormEvent) => {
           />
         </div>
 
-        {/* 본문 입력 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">내용 (Markdown 지원 예정)</label>
+          <label className="block text-sm font-bold text-gray-700 mb-2">내용</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -75,7 +88,6 @@ const handleSubmit = (e: React.FormEvent) => {
           />
         </div>
 
-        {/* 버튼 섹션 */}
         <div className="flex gap-4">
           <button
             type="button"
