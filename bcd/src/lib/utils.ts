@@ -1,24 +1,32 @@
-// src/lib/utils.ts
-
+/**
+ * 유저 ID(예: red-triangle)를 받아 해당 유저의 고유 색상과 모양을 반환합니다.
+ */
 export const getIdentity = (id: string) => {
-  // 1. ID 문자열을 숫자로 변환 (간단한 해시)
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  // 1. 기본값 설정 (ID가 없거나 형식이 잘못된 경우 대비)
+  if (!id || !id.includes("-")) {
+    return {
+      primaryColor: "#333333",
+      shapeType: "square",
+    };
   }
 
-  // 2. RGB 색상 생성 (0~255)
-  const r = (hash & 0xFF0000) >> 16;
-  const g = (hash & 0x00FF00) >> 8;
-  const b = hash & 0x0000FF;
+  // 2. ID 분리 (red-circle -> ['red', 'circle'])
+  const [colorPart, shapePart] = id.split("-");
 
-  // 3. 도형 타입 결정 (나머지 연산 이용)
-  const shapes = ['circle', 'square', 'triangle'];
-  const shapeType = shapes[Math.abs(hash) % shapes.length];
+  // 3. 색상 매칭 데이터 (로그인 페이지와 동일한 Hex 값)
+  const colorMap: { [key: string]: string } = {
+    red: "#FF4D4D",
+    blue: "#4D94FF",
+    green: "#2ECC71",
+  };
+
+  // 4. 모양 매칭 데이터
+  const shapes = ["circle", "square", "triangle"];
+  const shapeType = shapes.includes(shapePart) ? shapePart : "square";
 
   return {
-    primaryColor: `rgb(${Math.abs(r)}, ${Math.abs(g)}, ${Math.abs(b)})`,
-    shapeType,
-    hash
+    // 매칭되는 색이 없으면 검정색(#333) 반환
+    primaryColor: colorMap[colorPart] || "#333333",
+    shapeType: shapeType,
   };
 };

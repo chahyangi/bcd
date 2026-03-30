@@ -1,44 +1,110 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function HomePage() {
-  const [posts, setPosts] = useState<any[]>([]);
+// 1. 색상 데이터 (3종)
+const COLORS = [
+  { id: "red", label: "레드", value: "#FF4D4D" },
+  { id: "blue", label: "블루", value: "#4D94FF" },
+  { id: "green", label: "그린", value: "#2ECC71" },
+];
 
+// 2. 모양 데이터 (순서: 세모 -> 네모 -> 원)
+const SHAPES = [
+  { id: "triangle", label: "세모", radius: "0", path: "polygon(50% 0%, 0% 100%, 100% 100%)" },
+  { id: "square", label: "네모", radius: "8px", path: "none" },
+  { id: "circle", label: "원", radius: "50%", path: "none" },
+];
+
+export default function LoginPage() {
+  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  const [selectedShape, setSelectedShape] = useState(SHAPES[0]);
+  const router = useRouter();
+
+  // 이미 로그인된 상태라면 로그인 페이지를 보여주지 않고 피드로 튕겨냄
   useEffect(() => {
-    // 컴포넌트가 마운트될 때 로컬 저장소에서 글 불러오기
-    const savedPosts = JSON.parse(localStorage.getItem("posts") || "[]");
-    setPosts(savedPosts);
-  }, []);
+    const user = localStorage.getItem("currentUser");
+    if (user) {
+      router.replace("/feed");
+    }
+  }, [router]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const identityId = `${selectedColor.id}-${selectedShape.id}`;
+    
+    // 데이터 저장 후 본인의 블로그로 이동
+    localStorage.setItem("currentUser", JSON.stringify({ 
+      id: identityId,
+      colorValue: selectedColor.value 
+    }));
+    
+    router.push(`/user/${identityId}`);
+  };
 
   return (
-    <main className="p-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">BCD 피드</h1>
-        <Link href="/write">
-          <button className="px-6 py-2 bg-black text-white rounded-full font-bold hover:opacity-80">
-            + 새 글 쓰기
-          </button>
-        </Link>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="max-w-md w-full bg-white p-12 rounded-[3rem] shadow-2xl border border-gray-100">
+        
+        <header className="text-center mb-12">
+          <h1 className="text-4xl font-black tracking-tighter mb-2 italic">BCD IDENTITY</h1>
+          <p className="text-gray-400 text-sm font-medium">나만의 정체성을 선택하세요.</p>
+        </header>
 
-      <div className="grid gap-4">
-        {posts.length > 0 ? (
-          posts.map((post) => (
-            <Link key={post.postId} href={`/user/${post.authorId}/post/${post.postId}`}>
-              <div className="p-6 border rounded-xl hover:shadow-lg transition-all bg-white">
-                <h2 className="text-xl font-bold">{post.title}</h2>
-                <p className="text-sm text-gray-400 mt-2">작성자: {post.authorId} | {post.date}</p>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <p className="text-gray-500 text-center py-20 border-2 border-dashed rounded-xl">
-            아직 작성된 글이 없습니다. 첫 번째 글을 작성해 보세요!
+        <form onSubmit={handleLogin} className="space-y-12">
+          {/* Step 1. 색상 선택 */}
+          <div className="flex justify-center gap-6">
+            {COLORS.map((color) => (
+              <button
+                type="button"
+                key={color.id}
+                onClick={() => setSelectedColor(color)}
+                className={`w-12 h-12 rounded-full transition-all ${
+                  selectedColor.id === color.id ? "ring-4 ring-offset-4 ring-black scale-110" : "opacity-30 hover:opacity-100"
+                }`}
+                style={{ backgroundColor: color.value }}
+              />
+            ))}
+          </div>
+
+          {/* Step 2. 모양 선택 (세모-네모-원) */}
+          <div className="flex justify-center gap-6">
+            {SHAPES.map((shape) => (
+              <button
+                type="button"
+                key={shape.id}
+                onClick={() => setSelectedShape(shape)}
+                className={`w-20 h-20 flex items-center justify-center rounded-2xl border-2 transition-all ${
+                  selectedShape.id === shape.id ? "border-black bg-gray-50 shadow-inner" : "border-transparent bg-gray-50"
+                }`}
+              >
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    backgroundColor: selectedColor.value,
+                    borderRadius: shape.radius,
+                    clipPath: shape.path,
+                    transition: "all 0.3s ease"
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full py-5 rounded-2xl bg-black text-white font-black text-lg shadow-xl hover:bg-gray-800 active:scale-95 transition-all"
+          >
+            START BLOGGING
+          </button>
+          
+          <p className="text-center text-[11px] font-bold text-gray-300 uppercase tracking-widest">
+            Identity: <span className="text-black underline">{selectedColor.id}-{selectedShape.id}</span>
           </p>
-        )}
+        </form>
       </div>
-    </main>
+    </div>
   );
 }

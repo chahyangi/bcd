@@ -1,23 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react"; // useEffect 추가
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 
 export default function WritePage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null); // 유저 ID 상태 추가
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const router = useRouter();
 
-  // 1. 페이지 로드 시 로그인된 유저 정보 가져오기
   useEffect(() => {
     const userJson = localStorage.getItem("currentUser");
     if (userJson) {
       const user = JSON.parse(userJson);
       setCurrentUserId(user.id);
     } else {
-      // 로그인 정보가 없으면 로그인 페이지로 튕겨내기 (선택 사항)
       alert("로그인이 필요합니다.");
       router.push("/login");
     }
@@ -32,13 +30,15 @@ export default function WritePage() {
     }
 
     const existingPosts = JSON.parse(localStorage.getItem("posts") || "[]");
-    const newPostId = (existingPosts.length + 1).toString();
+    
+    // 🔥 고유 ID 생성 (중복 방지 및 문자열 통일)
+    const newPostId = Date.now().toString();
 
     const newPost = {
       postId: newPostId,
       title: title,
       content: content,
-      authorId: currentUserId, // 2. "da-hoon" 대신 실제 로그인한 유저 ID 저장
+      authorId: currentUserId,
       date: new Date().toLocaleDateString(),
     };
 
@@ -46,13 +46,11 @@ export default function WritePage() {
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
 
     alert("글이 저장되었습니다!");
-    // 3. 저장 후 자신의 블로그 페이지로 이동
     router.push(`/user/${currentUserId}`);
   };
 
   return (
     <div className="max-w-2xl mx-auto p-10">
-      {/* 상단 네비게이션 부분은 Home으로 가는 링크로 수정하는 것이 자연스럽습니다 */}
       <div className="flex justify-between items-center mb-8">
         <Link href="/">
           <h1 className="text-xl font-bold text-gray-400 hover:text-black transition-all">← BCD 피드로</h1>
@@ -71,7 +69,7 @@ export default function WritePage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="제목을 입력하세요"
-            className="w-full p-4 border-2 border-gray-100 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
+            className="w-full p-4 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-black transition-all"
             required
           />
         </div>
@@ -83,7 +81,7 @@ export default function WritePage() {
             onChange={(e) => setContent(e.target.value)}
             placeholder="당신의 이야기를 들려주세요..."
             rows={10}
-            className="w-full p-4 border-2 border-gray-100 rounded-xl focus:border-blue-500 focus:outline-none transition-all resize-none"
+            className="w-full p-4 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-black transition-all resize-none"
             required
           />
         </div>
@@ -92,13 +90,13 @@ export default function WritePage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-all"
+            className="flex-1 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200"
           >
             취소
           </button>
           <button
             type="submit"
-            className="flex-[2] py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 hover:shadow-lg transition-all"
+            className="flex-[2] py-4 bg-black text-white font-bold rounded-xl hover:opacity-80"
           >
             출판하기
           </button>

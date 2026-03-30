@@ -1,65 +1,105 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from 'next/link';
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { getIdentity } from "@/lib/utils";
 
-export default function UserPage() {
+export default function UserBlogPage() {
   const params = useParams();
-  const id = params.id as string;
-  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const router = useRouter();
+  const [posts, setPosts] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+
+  const userId = params?.id as string;
 
   useEffect(() => {
-    // 1. 로컬 스토리지에서 모든 글 가져오기
-    const allPosts = JSON.parse(localStorage.getItem("posts") || "[]");
-    
-    // 2. 현재 접속한 블로그 주인(id)의 글만 필터링
-    const filteredPosts = allPosts.filter((post: any) => post.authorId === id);
-    
-    setUserPosts(filteredPosts);
-  }, [id]);
+    if (!userId) return;
+
+    const loadUserData = () => {
+      try {
+        // 1. 전체 게시글 로드 및 해당 유저 글 필터링
+        const allPosts = JSON.parse(localStorage.getItem("posts") || "[]");
+        const userPosts = allPosts.filter((p: any) => p.authorId === userId);
+        
+        // 최신순 정렬
+        setPosts(userPosts.sort((a: any, b: any) => Number(b.postId) - Number(a.postId)));
+
+        // 2. 본인 확인 (로그인된 유저와 현재 블로그 주인이 같은지)
+        const userJson = localStorage.getItem("currentUser");
+        if (userJson) {
+          const currentUser = JSON.parse(userJson);
+          if (currentUser.id === userId) {
+            setIsOwner(true);
+          }
+        }
+      } catch (e) {
+        console.error("데이터 로드 에러:", e);
+      } finally {
+        // 에러가 나더라도 로딩 상태는 해제하여 무한 로딩 방지
+        setIsLoaded(true);
+      }
+    };
+
+    loadUserData();
+  }, [userId]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const { primaryColor } = getIdentity(userId);
 
   return (
-    <div className="p-10 max-w-2xl mx-auto">
-      <header className="mb-12">
-        <h1 className="text-4xl font-black mb-2">{id}님의 블로그</h1>
-        <p className="text-gray-500 font-medium">
-          총 {userPosts.length}개의 기록이 있습니다.
-        </p>
+    <div className="max-w-5xl mx-auto p-10 min-h-screen">
+      {/* 상단 프로필 영역 */}
+      <header className="mb-20 flex flex-col items-center">
+        <div 
+          className="w-24 h-24 mb-6 shadow-lg"
+          style={{ 
+            backgroundColor: primaryColor,
+            borderRadius: userId.includes("circle") ? "50%" : "0",
+            clipPath: userId.includes("triangle") ? "polygon(50% 0%, 0% 100%, 100% 100%)" : "none"
+          }}
+        />
+        <h1 className="text-4xl font-black tracking-tighter uppercase mb-2">{userId}</h1>
+        <p className="text-gray-400 font-medium">Record of Identity</p>
+        
+        {isOwner && (
+          <Link href="/write" className="mt-8 px-8 py-3 bg-black text-white rounded-full font-black text-xs hover:scale-105 transition-all">
+            NEW POST
+          </Link>
+        )}
       </header>
 
-      <div className="space-y-6">
-        {userPosts.length > 0 ? (
-          userPosts.map((post) => (
-            <Link 
-              key={post.postId} 
-              href={`/user/${id}/post/${post.postId}`}
-              className="block p-6 bg-white border-2 border-transparent hover:border-black rounded-3xl shadow-sm hover:shadow-xl transition-all group"
-            >
-              <div className="flex justify-between items-start">
+      {/* 포스트 목록 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {posts.length > 0 ? (
+          posts.map((post: any) => (
+            <Link key={post.postId} href={`/user/${userId}/post/${post.postId}`}>
+              <div className="group p-10 bg-white border border-gray-100 rounded-[2.5rem] hover:shadow-2xl transition-all h-full flex flex-col justify-between">
                 <div>
-                  <h2 className="text-xl font-bold mb-2 group-hover:underline">{post.title}</h2>
-                  <p className="text-gray-400 text-sm">{post.date}</p>
+                  <div className="text-[10px] font-black text-gray-300 mb-4 uppercase tracking-widest">{post.date}</div>
+                  <h2 className="text-2xl font-black mb-4 group-hover:text-gray-600 transition-colors">{post.title}</h2>
+                  <p className="text-gray-500 line-clamp-3 leading-relaxed">{post.content}</p>
                 </div>
-                <span className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                <div className="mt-8 pt-6 border-t border-gray-50 flex justify-between items-center">
+                  <span className="text-xs font-bold text-gray-300 group-hover:text-black transition-colors uppercase">Read Full Story</span>
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColor }} />
+                </div>
               </div>
             </Link>
           ))
         ) : (
-          <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-            <p className="text-gray-400">아직 작성된 글이 없습니다.</p>
-            <Link href="/write" className="text-blue-500 font-bold mt-2 inline-block hover:underline">
-              첫 글 쓰러 가기
-            </Link>
+          <div className="col-span-full py-32 text-center border-2 border-dashed rounded-[3rem]">
+            <p className="text-gray-300 font-black italic uppercase tracking-widest">No Stories Posted Yet</p>
           </div>
         )}
-      </div>
-
-      {/* 홈으로 돌아가기 버튼 (BCD 피드) */}
-      <div className="mt-12 text-center">
-        <Link href="/" className="text-sm font-bold text-gray-300 hover:text-black transition-all">
-          ← 전체 피드 보기
-        </Link>
       </div>
     </div>
   );
